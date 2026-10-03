@@ -22,6 +22,7 @@ let score = 0;
 let leftPressed = false;
 let rightPressed = false;
 
+// --- 键盘控制（电脑用）---
 document.addEventListener('keydown', e => {
     if (e.key === 'ArrowLeft') leftPressed = true;
     if (e.key === 'ArrowRight') rightPressed = true;
@@ -31,21 +32,56 @@ document.addEventListener('keyup', e => {
     if (e.key === 'ArrowRight') rightPressed = false;
 });
 
+// --- 触屏控制（手机用）---
+// 获取 canvas 在屏幕上的位置，用来把手指位置转换成游戏里的坐标
+function getTouchX(touch) {
+    const rect = canvas.getBoundingClientRect();
+    return touch.clientX - rect.left;
+}
+
+canvas.addEventListener('touchstart', e => {
+    e.preventDefault(); // 防止页面跟着滑动
+    if (e.touches.length > 0) {
+        paddle.x = getTouchX(e.touches[0]) - paddle.width / 2;
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length > 0) {
+        paddle.x = getTouchX(e.touches[0]) - paddle.width / 2;
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+}, { passive: false });
+
+// --- 更新游戏状态 ---
 function update() {
+    // 键盘控制（如果按了键盘）
     if (leftPressed && paddle.x > 0) paddle.x -= paddle.speed;
     if (rightPressed && paddle.x < canvas.width - paddle.width) paddle.x += paddle.speed;
 
+    // 边界限制（防止挡板跑出画布）
+    if (paddle.x < 0) paddle.x = 0;
+    if (paddle.x > canvas.width - paddle.width) paddle.x = canvas.width - paddle.width;
+
+    // 球移动
     ball.x += ball.dx;
     ball.y += ball.dy;
 
+    // 撞左右墙
     if (ball.x - ball.radius < 0 || ball.x + ball.radius > canvas.width) {
         ball.dx = -ball.dx;
     }
 
+    // 撞上墙
     if (ball.y - ball.radius < 0) {
         ball.dy = -ball.dy;
     }
 
+    // 撞挡板
     if (
         ball.y + ball.radius > paddle.y &&
         ball.x > paddle.x &&
@@ -57,6 +93,7 @@ function update() {
         scoreEl.textContent = score;
     }
 
+    // 掉到底部 → 重置
     if (ball.y - ball.radius > canvas.height) {
         ball.x = 200;
         ball.y = 100;
@@ -67,6 +104,7 @@ function update() {
     }
 }
 
+// --- 绘制画面 ---
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -80,6 +118,7 @@ function draw() {
     ctx.closePath();
 }
 
+// --- 游戏主循环 ---
 function gameLoop() {
     update();
     draw();
